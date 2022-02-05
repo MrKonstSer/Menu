@@ -104,13 +104,12 @@ window.addEventListener('DOMContentLoaded', () => {
     //Модальное окно
 
     const modalTrigger = document.querySelectorAll('[data-modal]'),
-          modalCloseBtn = document.querySelector('[data-close]'),
           modal = document.querySelector('.modal');
 
     function openModal() {
-        /* modal.classList.add('show');
-        modal.classList.remove('hide'); */
-        modal.classList.toggle('show'); // show - селектор из CSS
+        modal.classList.add('show');
+        modal.classList.remove('hide'); 
+        //modal.classList.toggle('show'); // show - селектор из CSS
         document.body.style.overflow = 'hidden'; //Запрещаем прокрутку сайта при открытом модальном окне
         clearInterval(modalTimerId); // Отменяем счетчик времени , если пользователь сам открыл модальное окно
     }      
@@ -122,18 +121,16 @@ window.addEventListener('DOMContentLoaded', () => {
     
 
     function closeModal () {
-         /* modal.classList.add('hide');
-        modal.classList.remove('show'); */
-        modal.classList.toggle('show');
+        modal.classList.add('hide');
+        modal.classList.remove('show');
+        //modal.classList.toggle('show');
         document.body.style.overflow = ''; //Разрешаем прокрутку сайта
     }
 
-    modalCloseBtn.addEventListener('click', closeModal);
-       
-    // Закрытие мод окна с подложки (темная сторона) или с клавиши Escape
+    // Закрытие мод окна с подложки (темная сторона), с помощью получения атрибута data-close = " "  или с клавиши Escape
      
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
+        if (e.target === modal || e.target.getAttribute('data-close') == '') {
             closeModal();
         }
     });
@@ -144,7 +141,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const modalTimerId = setTimeout(openModal, 3000);
+    const modalTimerId = setTimeout(openModal, 50000);
 
     // Открываем модОкно при прокрутке до самого низа
 
@@ -232,6 +229,118 @@ window.addEventListener('DOMContentLoaded', () => {
         '.menu .container',
         'menu__item'
     ).madeHTML();
+
+
+    //Реализация скрипта отправки данных на сервер
+
+    //Задача : взять несколько форм , которые есть на сайте и отправить их на server.php 
+
+    //Forms
+
+    const forms = document.querySelectorAll('form');
+
+    const message = {
+        loading: 'img/form/spinner.svg',
+        success: 'Спасибо! Скоро мы с вами свяжеся',
+        failure: 'Что то пошло не так...'
+    };
+
+    forms.forEach(item => {
+        postData(item);
+    });
+
+    function postData (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            let statusMessage = document.createElement('img'); //Тег img для спиннера
+            statusMessage.src = message.loading; //Подставляем в тег img атрибут src который мы получили из объекта message
+            statusMessage.style.cssText = `
+                display: block;
+                margin: 0 auto;
+            `;
+            
+            form.insertAdjacentElement('afterend', statusMessage);
+
+            const request = new XMLHttpRequest();
+            request.open('POST', 'server.php');
+
+            request.setRequestHeader('Content-type', 'application/json');
+
+            // Как сделать так , чтобы все данные, которые заполнил пользователь в форме, мы получили в JS и уже могли отправить на сервер? Два формата: 1) FormData 2) JSON
+
+            const formData = new FormData(form);
+
+            const object = {};
+            formData.forEach(function(value, key) {
+                object[key] = value;
+            });
+
+            const json = JSON.stringify(object); //Уходит запрос с данными
+
+
+            request.send(json);
+
+            request.addEventListener('load', () => { //получаем ответ от сервера
+                if(request.status === 200) {  //если все ОК
+                    console.log(request.response); //то выводим в консоль результат
+                    showThanksModal(message.success); //запускаем функцию с сообщением , что все успешно. У нас покажется модальное окно и через 4 секунды оно будет закрываться, вместе с текстом и возвращением того нормального контента, который там будет
+                    form.reset(); // Чистка формы, чтобы все данные сбросились
+                    statusMessage.remove(); //Удаляем спиннер
+                    
+                } else {
+                    showThanksModal(message.failure);
+                }
+            });
+        });
+    }
+
+    function showThanksModal(message) {
+        const prevModalDialog = document.querySelector('.modal__dialog');
+
+        prevModalDialog.classList.add('hide');
+        openModal();
+
+        const thanksModal = document.createElement('div');
+        thanksModal.classList.add('modal__dialog');
+        thanksModal.innerHTML = `
+            <div class="modal__content">
+                <div class="modal__close" data-close>×</div>
+                <div class="modal__title">${message}</div>
+            </div> 
+        `;
+
+        //Получаем наше модальное окно и зааппендим наш блок с версткой
+        
+        document.querySelector('.modal').append(thanksModal);
+        setTimeout(() => {    //Удалим окно через 4сек
+            thanksModal.remove();
+            prevModalDialog.classList.add('show');  //Добавляем шоу, чтобы показыать нормальное мод окно
+            prevModalDialog.classList.remove('hide'); // Удаляем класс хид, чтобы окно не скрывалось
+            closeModal(); //Закрываем мод окно, чтобы пользователю не мешать 
+        }, 4000);
+    }
+
+    //Fetch API вариант с GET запросом
+
+    /* fetch('https://jsonplaceholder.typicode.com/posts')
+        .then(response => response.json())  // Этот метод превратит данные в формате JSON в обычный JS объект. response.json() - это Promise, и если все успешно прошло и он за какое то время преобразовался в объект - идет следующий then
+        .then(json => console.log(json)); // Здесь json - это объект JS  */
+
+
+        //Fetch API вариант с POST запросом 
+        
+        fetch('https://jsonplaceholder.typicode.com/posts' , {
+            method : "POST",
+            body: JSON.stringify({name: "Alex"}),
+            headers: {
+                'Content-type': 'application/json'
+            }
+        })
+        .then(response => response.json())  
+        .then(json => console.log(json));
+         
+        
 
 });  
  
