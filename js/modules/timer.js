@@ -1,8 +1,5 @@
-function timer () {
+function timer (id, deadline) {
     //Timer
-
-    const deadLine = '2022-04-01';
-
     //Функция определяющая разницу между нашим дедлайном и текущем временем
 
     function getTimeRemaning(endtime) {
@@ -58,7 +55,7 @@ function timer () {
         }
     }
 
-    setClock('.timer', deadLine);
+    setClock(id, deadline);
 }
 
-module.exports = timer;
+export default timer;
